@@ -1,8 +1,8 @@
-// src/components/FormulaInput.jsx
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import useFormulaStore from '../store/formulaStore';
 import { useQuery } from '@tanstack/react-query';
-import { fetchSuggestions } from '../api/suggestions'; // Assuming this uses local dummy data
+import { fetchSuggestions } from '../api/suggestions';
 
 const OPERATORS = ['+', '-', '*', '/', '^'];
 const PARENTHESES = ['(', ')'];
@@ -10,16 +10,14 @@ const PARENTHESES = ['(', ')'];
 const FormulaInput = () => {
   const { items, addItem, removeLastItem, removeItemById, updateItemById } = useFormulaStore();
   
-  // Holds the text currently being typed in the editable span, not yet converted to an item
   const [currentInputText, setCurrentInputText] = useState('');
   
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
-  const editorAreaRef = useRef(null);         // Ref for the main formula display area
-  const currentInputSpanRef = useRef(null); // Ref for the editable input span
-  const autocompleteRef = useRef(null);     // Ref for the autocomplete list
+  const editorAreaRef = useRef(null);         
+  const currentInputSpanRef = useRef(null); 
+  const autocompleteRef = useRef(null);
 
-  // Dummy variable values for calculation example
   const dummyVariables = { x: 10, y: 5, z: 20, Sales: 1000, Expenses: 300, Revenue: 1500, Profit: 700, salam: 50, aa: 2, werfwer: 3, uiknt: 4 };
 
   // Prepare query for autocomplete, removing '@' if present for tag suggestions
@@ -28,21 +26,19 @@ const FormulaInput = () => {
   const { data: suggestions = [], isLoading: isLoadingSuggestions } = useQuery({
     queryKey: ['suggestions', autocompleteQuery],
     queryFn: () => fetchSuggestions(autocompleteQuery),
-    // Enable query only if there's a query, autocomplete is shown, and it's not a simple operator/number
     enabled: !!autocompleteQuery && showAutocomplete && !OPERATORS.includes(currentInputText.trim()) && isNaN(parseFloat(currentInputText.trim())),
   });
 
-  // Helper to focus the editable span, clear its DOM content, and move caret to the end
   const focusAndClearInputSpan = useCallback(() => {
     setTimeout(() => {
       if (currentInputSpanRef.current) {
-        currentInputSpanRef.current.textContent = ''; // Clear the DOM content
+        currentInputSpanRef.current.textContent = ''; 
         currentInputSpanRef.current.focus();
         const range = document.createRange();
         const sel = window.getSelection();
         if (sel) {
           range.selectNodeContents(currentInputSpanRef.current);
-          range.collapse(false); // false for end
+          range.collapse(false); 
           sel.removeAllRanges();
           sel.addRange(range);
         }
@@ -53,11 +49,11 @@ const FormulaInput = () => {
   // Processes the current input text and adds it as an item (operand, number, or tag)
   const processAndAddItem = (textToProcess) => {
     const text = textToProcess.trim();
-    if (!text) { // If nothing to process, just clear and focus
+    if (!text) { 
         setCurrentInputText('');
         setShowAutocomplete(false);
         focusAndClearInputSpan();
-        return; // Return to prevent further execution
+        return; 
     }
 
     if (OPERATORS.includes(text) || PARENTHESES.includes(text)) {
@@ -67,17 +63,17 @@ const FormulaInput = () => {
     } else if (text.startsWith('@') && text.length > 1) {
       addItem({ type: 'tag', label: text.substring(1) });
     } else if (text) {
-      addItem({ type: 'tag', label: text }); // Default to tag if not operator/number
+      addItem({ type: 'tag', label: text }); 
     }
     
-    setCurrentInputText(''); // Clear state
+    setCurrentInputText(''); 
     setShowAutocomplete(false);
-    focusAndClearInputSpan(); // Clear DOM and focus
+    focusAndClearInputSpan(); 
   };
 
   // Handles key down events on the editable span
   const handleKeyDown = (e) => {
-    // Autocomplete navigation and selection
+   
     if (showAutocomplete && suggestions.length > 0) {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
@@ -93,7 +89,6 @@ const FormulaInput = () => {
         if (suggestions[activeSuggestionIndex]) {
           e.preventDefault();
           const selected = suggestions[activeSuggestionIndex];
-          // Before adding the selected tag, process any text that was typed before the autocomplete query part
           const queryStartIndex = currentInputText.toLowerCase().lastIndexOf(autocompleteQuery.toLowerCase());
           if (queryStartIndex > 0) {
               const textBeforeQuery = currentInputText.substring(0, queryStartIndex);
@@ -113,7 +108,6 @@ const FormulaInput = () => {
       e.preventDefault();
       processAndAddItem(currentInputText); 
       addItem({ type: 'operand', value: e.key });
-      // If currentInputText was empty before adding operator, ensure span is cleared and focused
       if (!currentInputText.trim()) {
           focusAndClearInputSpan();
       }
@@ -128,11 +122,8 @@ const FormulaInput = () => {
 
     if (e.key === 'Backspace') {
       if (currentInputText.length > 0) {
-        // Let onInput handle currentInputText state update
-        // No e.preventDefault()
-        // setShowAutocomplete(true); // onInput will handle this
+        
       } else if (items.length > 0) {
-        // currentInputText is empty, delete last item and restore its text
         e.preventDefault(); 
         const lastItem = items[items.length - 1];
         let textToRestore = '';
@@ -141,10 +132,9 @@ const FormulaInput = () => {
         
         removeLastItem();
         setCurrentInputText(textToRestore); 
-        // The useEffect for currentInputText will update the DOM and set caret
         setShowAutocomplete(true);
       }
-      return; // Explicitly return after custom backspace logic or allowing default
+      return;
     }
 
     if (e.key === 'Escape') {
@@ -152,18 +142,17 @@ const FormulaInput = () => {
       return;
     }
     
-    // For other printable characters, allow default behavior for the contentEditable span.
-    // onInput will capture the change and update currentInputText.
+   
     if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      setShowAutocomplete(true); // Show autocomplete when typing
+      setShowAutocomplete(true); 
     }
   };
 
-  // Calculates the formula result
+
   const calculateFormula = () => {
     let expressionString = '';
     let errorInExpression = false;
-    if (items.length === 0) return "0"; // If no items, result is 0 or empty
+    if (items.length === 0) return "0";
 
     items.forEach(item => {
       if (item.type === 'tag') {
@@ -180,7 +169,6 @@ const FormulaInput = () => {
     if (expressionString.trim() === "") return 'Invalid Expression';
 
     try {
-      // WARNING: eval/new Function is insecure. Use a proper parser for production.
       const result = new Function(`"use strict"; return (${expressionString.trim()})`)();
       return isNaN(result) || result === undefined || result === null ? 'Invalid Expression' : result.toString();
     } catch (err) {
@@ -193,12 +181,12 @@ const FormulaInput = () => {
     const label = suggestion.name || suggestion;
     const atIndex = currentInputText.lastIndexOf('@');
 
-    if (atIndex > -1) { // If @ was used to trigger autocomplete
+    if (atIndex > -1) { 
         const textBeforeAt = currentInputText.substring(0, atIndex).trim();
         if (textBeforeAt) {
-            processAndAddItem(textBeforeAt); // Process text before '@'
+            processAndAddItem(textBeforeAt); 
         }
-    } else { // If autocomplete triggered without '@' (e.g., just typing "Sal")
+    } else { 
         const queryStartIndex = currentInputText.toLowerCase().lastIndexOf(autocompleteQuery.toLowerCase());
         if (queryStartIndex > 0) {
             const textBeforeQuery = currentInputText.substring(0, queryStartIndex).trim();
@@ -207,13 +195,11 @@ const FormulaInput = () => {
     }
 
     addItem({ type: 'tag', label: label });
-    // State and DOM clearing is handled by processAndAddItem or the next focusAndClearInputSpan
     setCurrentInputText(''); 
     setShowAutocomplete(false);
     focusAndClearInputSpan();
   };
   
-  // Close autocomplete when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -227,13 +213,11 @@ const FormulaInput = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Effect to update DOM of currentInputSpanRef when currentInputText state changes,
-  // and then correctly position the caret. This is crucial for contentEditable.
+
   useEffect(() => {
     if (currentInputSpanRef.current && currentInputSpanRef.current.textContent !== currentInputText) {
         currentInputSpanRef.current.textContent = currentInputText; // Update DOM
         
-        // Set caret to the end of the updated text
         setTimeout(() => { 
             if(currentInputSpanRef.current && window.getSelection) {
                 const range = document.createRange();
@@ -241,21 +225,21 @@ const FormulaInput = () => {
                 if (sel) {
                     if (currentInputSpanRef.current.childNodes.length > 0) {
                         const textNode = currentInputSpanRef.current.childNodes[0];
-                        // Ensure textNode is actually a text node
+                    
                         if (textNode && textNode.nodeType === Node.TEXT_NODE) {
                             range.setStart(textNode, textNode.textContent.length);
-                            range.collapse(true); // Collapse to the start of the range (which is the end of text)
-                        } else { // Fallback if first child is not a text node (e.g. empty)
+                            range.collapse(true); 
+                        } else {
                             range.selectNodeContents(currentInputSpanRef.current);
                             range.collapse(false);
                         }
-                    } else { // If span is empty
+                    } else {
                         range.selectNodeContents(currentInputSpanRef.current);
                         range.collapse(false); // Collapse to the end of the span
                     }
                     sel.removeAllRanges();
                     sel.addRange(range);
-                    // currentInputSpanRef.current.focus(); // Re-focus if lost
+                 
                 }
             }
         }, 0);
@@ -265,11 +249,11 @@ const FormulaInput = () => {
 
   return (
     <div style={{ position: 'relative', padding: '10px', border: '1px solid #ccc', borderRadius: '4px', backgroundColor: '#f0f0f0' }}>
-      {/* Main area for displaying formula items and the current input span */}
+      {}
       <div
         className="formula-editor-area"
         ref={editorAreaRef}
-        onClick={() => currentInputSpanRef.current?.focus()} // Focus the input span on area click
+        onClick={() => currentInputSpanRef.current?.focus()} 
         style={{
           border: '1px solid #bdbdbd', minHeight: '40px', padding: '8px',
           display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '5px',
@@ -286,35 +270,35 @@ const FormulaInput = () => {
             updateItemById={updateItemById}
           />
         ))}
-        {/* Editable span for current user input */}
+        {}
         <span
             ref={currentInputSpanRef}
             contentEditable="true"
             className="current-input-span"
             onKeyDown={handleKeyDown}
-            onInput={(e) => { // Handles text changes within the editable span
+            onInput={(e) => { 
                 const text = e.currentTarget.textContent || '';
-                setCurrentInputText(text); // Update React state based on DOM content
+                setCurrentInputText(text); 
                 setShowAutocomplete(!!text.trim());
-                if (text.trim()) setActiveSuggestionIndex(0); // Reset suggestion index
+                if (text.trim()) setActiveSuggestionIndex(0);
             }}
-            onFocus={() => setShowAutocomplete(!!currentInputText.trim())} // Show autocomplete if text exists on focus
+            onFocus={() => setShowAutocomplete(!!currentInputText.trim())} 
             style={{
-                display: 'inline-block', minWidth: '20px', // Min width for easier clicking when empty
+                display: 'inline-block', minWidth: '20px',
                 outline: 'none', padding: '0 2px', border: 'none',
-                flexGrow: 1, // Takes up remaining space
-                color: '#333', // Ensure text is visible
-                whiteSpace: 'pre' // Preserve spaces for better editing experience
+                flexGrow: 1, 
+                color: '#333', 
+                whiteSpace: 'pre' 
             }}
         />
       </div>
 
-      {/* Autocomplete Suggestions List */}
-      {showAutocomplete && autocompleteQuery && ( // Only show if query exists
+      {}
+      {showAutocomplete && autocompleteQuery && ( 
         <ul ref={autocompleteRef} style={{
           listStyle: 'none', padding: 0, margin: '5px 0 0 0', position: 'absolute',
           background: '#fff', border: '1px solid #ccc', borderRadius: '4px',
-          width: 'calc(100% - 18px)', // Adjust width based on parent padding
+          width: 'calc(100% - 18px)',
           maxHeight: '200px', overflowY: 'auto', 
           zIndex: 1010, boxShadow: '0 4px 6px rgba(0,0,0,0.1)', color: '#333'
         }}>
@@ -324,7 +308,7 @@ const FormulaInput = () => {
               key={suggestion.id || suggestion.name || idx} 
               onClick={() => handleSelectSuggestion(suggestion)}
               style={{ padding: '8px 12px', cursor: 'pointer',
-                       backgroundColor: idx === activeSuggestionIndex ? '#e9ecef' : 'transparent', // Highlight active
+                       backgroundColor: idx === activeSuggestionIndex ? '#e9ecef' : 'transparent', 
                        borderBottom: idx === suggestions.length - 1 ? 'none' : '1px solid #eee',
                        color: '#333'
                      }}
@@ -338,7 +322,7 @@ const FormulaInput = () => {
           }
         </ul>
       )}
-      {/* Result Display */}
+      {}
       <div style={{marginTop: '10px'}}>
         <h3 style={{color: items.length > 0 && calculateFormula() === 'Invalid Expression' ? '#dc3545' : '#28a745' }}>
             Result: {calculateFormula()}
@@ -348,7 +332,7 @@ const FormulaInput = () => {
   );
 };
 
-// Component to render individual formula items (tags, operands, numbers)
+// Component to render individual formula items
 const FormulaTag = ({ item, removeItemById, updateItemById }) => {
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -415,7 +399,7 @@ const FormulaTag = ({ item, removeItemById, updateItemById }) => {
     padding: '3px 8px', borderRadius: '3px', display: 'inline-flex',
     alignItems: 'center', userSelect: 'none', marginRight: '4px',
     marginBottom: '4px', position: 'relative', whiteSpace: 'nowrap',
-    color: '#333' // Default text color for all items
+    color: '#333' 
   };
 
   if (item.type === 'tag') {
